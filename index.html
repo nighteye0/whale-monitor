@@ -45,7 +45,10 @@ tr:hover{background:#333}
 const API='https://jaelynn-uncrystalled-memorisingly.ngrok-free.dev/api';
 async function load(){
 try{
-const r=await fetch(API+'/whale-signals?limit=20',{mode:'cors'});
+const r=await fetch(API+'/whale-signals?limit=20',{
+method:'GET',
+headers:{'ngrok-skip-browser-warning':'69420'}
+});
 const d=await r.json();
 const b=d.signals.filter(x=>x.action==='BUY').length;
 const s=d.signals.filter(x=>x.action==='SELL').length;
@@ -63,7 +66,7 @@ html+='<tr><td><b>'+x.symbol+'</b></td><td>$'+x.price.toFixed(2)+'</td><td class
 });
 document.getElementById('tb').innerHTML=html||'<tr><td colspan="6">No signals</td></tr>';
 }catch(e){
-document.getElementById('msg').innerHTML='<div class="msg err">❌ Bot not connected ('+e.message+')</div>';
+document.getElementById('msg').innerHTML='<div class="msg err">❌ Error: '+e.message+'</div>';
 }}
 load();
 setInterval(load,5000);
