@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Whale Monitor</title>
+  <style>
+    body { background: #1a1a1a; color: #fff; font-family: Arial; padding: 20px; }
+    .container { max-width: 1200px; margin: 0 auto; }
+    h1 { margin-bottom: 20px; }
+    .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 30px; }
+    .stat { background: #2a2a2a; padding: 20px; border-radius: 8px; border-left: 4px solid #3b82f6; }
+    .stat-label { font-size: 12px; color: #9ca3af; }
+    .stat-value { font-size: 32px; font-weight: bold; margin-top: 10px; }
+    table { width: 100%; border-collapse: collapse; background: #2a2a2a; border-radius: 8px; overflow: hidden; }
+    th { background: #1a1a1a; padding: 15px; text-align: left; border-bottom: 2px solid #3b82f6; }
+    td { padding: 12px 15px; border-bottom: 1px solid #333; }
+    tr:hover { background: #333; }
+    .buy { color: #10b981; font-weight: bold; }
+    .sell { color: #ef4444; font-weight: bold; }
+    .hold { color: #f59e0b; font-weight: bold; }
+    .error { color: #ef4444; padding: 15px; background: #2a1a1a; margin-bottom: 20px; border-radius: 8px; }
+    .success { color: #10b981; padding: 15px; background: #1a2a1a; margin-bottom: 20px; border-radius: 8px; }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h1>🐋 Whale Monitor Dashboard</h1>
+  <p>Real-time signals from your trading bot</p>
+
+  <div id="message"></div>
+
+  <div class="stats">
+    <div class="stat">
+      <div class="stat-label">Total Signals</div>
+      <div class="stat-value" id="total">--</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">🚀 BUY</div>
+      <div class="stat-value" id="buys" style="color: #10b981;">--</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">📉 SELL</div>
+      <div class="stat-value" id="sells" style="color: #ef4444;">--</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">➡️ HOLD</div>
+      <div class="stat-value" id="holds" style="color: #f59e0b;">--</div>
+    </div>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Symbol</th>
+        <th>Price</th>
+        <th>Action</th>
+        <th>Confidence</th>
+        <th>Whale Signal</th>
+        <th>Time</th>
+      </tr>
+    </thead>
+    <tbody id="tbody">
+      <tr><td colspan="6" style="text-align: center; padding: 40px;">Loading...</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<script>
+const API = 'http://localhost:5001/api';
+
+async function loadSignals() {
+  try {
+    const res = await fetch(API + '/whale-signals?limit=30');
+    const data = await res.json();
+    
+    const buys = data.signals.filter(s => s.action === 'BUY').length;
+    const sells = data.signals.filter(s => s.action === 'SELL').length;
+    const holds = data.signals.filter(s => s.action === 'HOLD').length;
+    
+    document.getElementById('total').textContent = data.total;
+    document.getElementById('buys').textContent = buys;
+    document.getElementById('sells').textContent = sells;
+    document.getElementById('holds').textContent = holds;
+    
+    document.getElementById('message').innerHTML = '<div class="success">✅ Connected to bot!</div>';
+    
+    let html = '';
+    data.signals.slice().reverse().forEach(s => {
+      const color = s.action === 'BUY' ? 'buy' : s.action === 'SELL' ? 'sell' : 'hold';
+      const emoji = s.action === 'BUY' ? '🚀' : s.action === 'SELL' ? '📉' : '➡️';
+      html += '<tr><td><b>' + s.symbol + '</b></td><td>$' + s.price.toFixed(2) + '</td><td class="' + color + '">' + emoji + ' ' + s.action + '</td><td>' + (s.confidence * 100).toFixed(0) + '%</td><td>' + (s.whale_signal || 'N/A') + '</td><td>' + new Date(s.timestamp).toLocaleTimeString() + '</td></tr>';
+    });
+    
+    if (data.signals.length === 0) {
+      html = '<tr><td colspan="6" style="text-align: center; padding: 20px;">No signals yet</td></tr>';
+    }
+    
+    document.getElementById('tbody').innerHTML = html;
+  } catch (e) {
+    document.getElementById('message').innerHTML = '<div class="error">❌ Bot API not running on localhost:5001. Start your bot first!</div>';
+    document.getElementById('tbody').innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 20px;">Waiting for bot...</td></tr>';
+  }
+}
+
+loadSignals();
+setInterval(loadSignals, 5000);
+</script>
+
+</body>
+</html>

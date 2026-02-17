@@ -2,14 +2,23 @@ from flask import Flask, jsonify, request
 from flask_cors import CORS
 from datetime import datetime
 import json
+from binance.client import Client
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 app = Flask(__name__)
-CORS(app)
+CORS(app, resources={r"/api/*": {"origins": "*"}})
+
+# Initialize Binance client
+api_key = os.getenv('BINANCE_API_KEY', 'demo')
+api_secret = os.getenv('BINANCE_API_SECRET', 'demo')
+client = Client(api_key, api_secret)
 
 signals_data = {
     'whale_signals': [],
     'memecoin_signals': [],
-    'performance': {'total_trades': 0, 'win_rate': 0, 'total_profit': 0}
 }
 
 @app.route('/api/whale-signals', methods=['GET'])
@@ -34,37 +43,35 @@ def add_whale_signal():
         signals_data['whale_signals'].pop(0)
     return jsonify({'status': 'added'}), 201
 
-@app.route('/api/memecoin-signals', methods=['GET'])
-def get_memecoin_signals():
-    limit = request.args.get('limit', 50, type=int)
-    sorted_signals = sorted(signals_data['memecoin_signals'], key=lambda x: x.get('score', 0), reverse=True)
-    return jsonify({'signals': sorted_signals[-limit:], 'total': len(signals_data['memecoin_signals'])})
-
-@app.route('/api/memecoin-signals', methods=['POST'])
-def add_memecoin_signal():
-    data = request.json
-    signal = {
-        'id': len(signals_data['memecoin_signals']) + 1,
-        'timestamp': datetime.now().isoformat(),
-        'symbol': data.get('symbol'),
-        'score': data.get('score'),
-        'risk_level': data.get('risk_level')
-    }
-    signals_data['memecoin_signals'].append(signal)
-    if len(signals_data['memecoin_signals']) > 500:
-        signals_data['memecoin_signals'].pop(0)
-    return jsonify({'status': 'added'}), 201
-
-@app.route('/api/stats', methods=['GET'])
-def get_stats():
-    whale_signals = signals_data['whale_signals']
-    buy_count = len([s for s in whale_signals if s.get('action') == 'BUY'])
-    return jsonify({'whale_signals': {'total': len(whale_signals), 'buy': buy_count}, 'memecoin_signals': {'total': len(signals_data['memecoin_signals'])}})
+@app.route('/api/chart/<symbol>', methods=['GET'])
+def get_chart(symbol):
+    """Get price history for charts"""
+    try:
+        interval = request.args.get('interval', '1m')
+        limit = request.args.get('limit', 50, type=int)
+        
+        klines = client.get_klines(symbol=symbol, interval=interval, limit=limit)
+        
+        data = []
+        for k in klines:
+            data.append({
+                'time': int(k[0]),
+                'open': float(k[1]),
+                'high': float(k[2]),
+                'low': float(k[3]),
+                'close': float(k[4]),
+                'volume': float(k[7]),
+                'timestamp': datetime.fromtimestamp(int(k[0])/1000).isoformat()
+            })
+        
+        return jsonify(data)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 400
 
 @app.route('/api/health', methods=['GET'])
-def health_check():
-    return jsonify({'status': 'online', 'timestamp': datetime.now().isoformat()})
+def health():
+    return jsonify({'status': 'online', 'signals': len(signals_data['whale_signals'])})
 
 if __name__ == '__main__':
-    print("🚀 API Server Started on http://localhost:5001")
+    print("🚀 API Server on http://localhost:5001 with Charts Support")
     app.run(host='0.0.0.0', port=5001, debug=False)
