@@ -1,119 +1,62 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Whale Monitor - Live Charts</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+<title>Whale Monitor</title>
 <style>
 body{background:#1a1a1a;color:#fff;font-family:Arial;padding:20px}
-.container{max-width:1400px;margin:0 auto}
-.grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:30px}
-.chart-box{background:#2a2a2a;padding:20px;border-radius:8px}
+.container{max-width:1200px;margin:0 auto}
 .stats{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:15px;margin-bottom:30px}
 .stat{background:#2a2a2a;padding:20px;border-radius:8px}
 .num{font-size:32px;font-weight:bold}
 table{width:100%;border-collapse:collapse;background:#2a2a2a}
 th,td{padding:12px;text-align:left;border-bottom:1px solid #333}
-th{background:#1a1a1a;border-bottom:2px solid #3b82f6}
-.buy{color:#10b981}
-.sell{color:#ef4444}
-.msg{padding:15px;margin-bottom:20px;border-radius:8px}
-.ok{background:rgba(16,185,129,0.1);color:#10b981}
-.err{background:rgba(239,68,68,0.1);color:#ef4444}
+.msg{padding:15px;margin-bottom:20px;border-radius:8px;background:rgba(16,185,129,0.1);color:#10b981}
 </style>
 </head>
 <body>
 <div class="container">
-<h1>🐋 Whale Monitor - Live Charts</h1>
-<p>Real-time signals + Live Price Charts</p>
-<div id="msg"></div>
+<h1>🐋 Whale Monitor - Live Charts & Signals</h1>
+<div id="msg">Connecting...</div>
 
 <div class="stats">
-<div class="stat"><div>Total</div><div class="num" id="total">--</div></div>
-<div class="stat"><div>🚀 BUY</div><div class="num buy" id="buys">--</div></div>
-<div class="stat"><div>📉 SELL</div><div class="num sell" id="sells">--</div></div>
-<div class="stat"><div>➡️ HOLD</div><div class="num hold" id="holds">--</div></div>
+<div class="stat"><div>Total</div><div class="num" id="total">0</div></div>
+<div class="stat"><div>🚀 BUY</div><div class="num" id="buys">0</div></div>
+<div class="stat"><div>📉 SELL</div><div class="num" id="sells">0</div></div>
+<div class="stat"><div>➡️ HOLD</div><div class="num" id="holds">0</div></div>
 </div>
 
-<div class="grid">
-<div class="chart-box">
-<h3>📈 Bitcoin</h3>
-<canvas id="btcChart" style="max-height:300px"></canvas>
-</div>
-<div class="chart-box">
-<h3>📈 Ethereum</h3>
-<canvas id="ethChart" style="max-height:300px"></canvas>
-</div>
-<div class="chart-box">
-<h3>📈 BNB</h3>
-<canvas id="bnbChart" style="max-height:300px"></canvas>
-</div>
-<div class="chart-box">
-<h3>📈 XRP</h3>
-<canvas id="xrpChart" style="max-height:300px"></canvas>
-</div>
-</div>
-
-<h2>📊 Recent Signals</h2>
 <table>
-<thead><tr><th>Symbol</th><th>Price</th><th>Action</th><th>Conf</th><th>Signal</th><th>Time</th></tr></thead>
-<tbody id="tb"></tbody>
+<thead><tr><th>Symbol</th><th>Price</th><th>Action</th><th>Confidence</th><th>Time</th></tr></thead>
+<tbody id="tb"><tr><td colspan="5">Loading...</td></tr></tbody>
 </table>
 </div>
 
 <script>
-const API='https://jaelynn-uncrystalled-memorisingly.ngrok-free.dev/api';
-let charts={};
-
 async function load(){
+const api='https://jaelynn-uncrystalled-memorisingly.ngrok-free.dev/api/whale-signals?limit=20';
 try{
-const r=await fetch(API+'/whale-signals?limit=20');
-const d=await r.json();
-document.getElementById('total').textContent=d.total;
-document.getElementById('buys').textContent=d.signals.filter(x=>x.action==='BUY').length;
-document.getElementById('sells').textContent=d.signals.filter(x=>x.action==='SELL').length;
-document.getElementById('holds').textContent=d.signals.filter(x=>x.action==='HOLD').length;
-document.getElementById('msg').innerHTML='<div class="msg ok">✅ Connected! '+d.total+' signals</div>';
-let html='';
-d.signals.slice().reverse().forEach(x=>{
-const c=x.action==='BUY'?'buy':x.action==='SELL'?'sell':'hold';
-const e=x.action==='BUY'?'🚀':x.action==='SELL'?'📉':'➡️';
-html+='<tr><td><b>'+x.symbol+'</b></td><td>$'+x.price.toFixed(2)+'</td><td class="'+c+'">'+e+' '+x.action+'</td><td>'+(x.confidence*100).toFixed(0)+'%</td><td>'+(x.whale_signal||'N/A')+'</td><td>'+new Date(x.timestamp).toLocaleTimeString()+'</td></tr>';
-});
-document.getElementById('tb').innerHTML=html;
-await loadCharts();
-}catch(e){
-document.getElementById('msg').innerHTML='<div class="msg err">❌ Bot offline</div>';
-}}
+const res=await fetch(api);
+const json=await res.json();
+console.log('Data:',json);
 
-async function loadCharts(){
-const symbols=['BTCUSDT','ETHUSDT','BNBUSDT','XRPUSDT'];
-const canvases=['btcChart','ethChart','bnbChart','xrpChart'];
-for(let i=0;i<symbols.length;i++){
-try{
-const r=await fetch(API+'/chart/'+symbols[i]+'?interval=15m&limit=50');
-const data=await r.json();
-const ctx=document.getElementById(canvases[i]).getContext('2d');
-if(charts[i])charts[i].destroy();
-charts[i]=new Chart(ctx,{
-type:'line',
-data:{
-labels:data.map(d=>new Date(d.timestamp).toLocaleTimeString()),
-datasets:[{
-label:symbols[i],
-data:data.map(d=>d.close),
-borderColor:'#3b82f6',
-backgroundColor:'rgba(59,130,246,0.1)',
-tension:0.1,
-fill:true
-}]
-},
-options:{responsive:true,maintainAspectRatio:true,plugins:{legend:{labels:{color:'#fff'}}},scales:{y:{ticks:{color:'#999'},grid:{color:'#333'}},x:{ticks:{color:'#999'},grid:{color:'#333'}}}}
+document.getElementById('msg').innerHTML='✅ Connected! '+json.total+' signals';
+document.getElementById('total').innerHTML=json.total;
+document.getElementById('buys').innerHTML=json.signals.filter(s=>s.action==='BUY').length;
+document.getElementById('sells').innerHTML=json.signals.filter(s=>s.action==='SELL').length;
+document.getElementById('holds').innerHTML=json.signals.filter(s=>s.action==='HOLD').length;
+
+let rows='';
+json.signals.slice().reverse().slice(0,20).forEach(s=>{
+rows+='<tr><td>'+s.symbol+'</td><td>$'+s.price.toFixed(2)+'</td><td><b>'+s.action+'</b></td><td>'+(s.confidence*100).toFixed(0)+'%</td><td>'+new Date(s.timestamp).toLocaleTimeString()+'</td></tr>';
 });
-}catch(e){console.log('Chart error:',e);}
+document.getElementById('tb').innerHTML=rows;
+}catch(e){
+document.getElementById('msg').innerHTML='❌ Connection failed: '+e.message;
+console.error(e);
 }}
 
 load();
-setInterval(load,10000);
+setInterval(load, 5000);
 </script>
 </body>
 </html>
