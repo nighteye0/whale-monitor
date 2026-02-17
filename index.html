@@ -15,7 +15,7 @@ th,td{padding:12px;text-align:left;border-bottom:1px solid #333}
 </head>
 <body>
 <div class="container">
-<h1>🐋 Whale Monitor - Live Charts & Signals</h1>
+<h1>🐋 Whale Monitor - Live Signals</h1>
 <div id="msg">Connecting...</div>
 
 <div class="stats">
@@ -33,11 +33,12 @@ th,td{padding:12px;text-align:left;border-bottom:1px solid #333}
 
 <script>
 async function load(){
-const api='https://jaelynn-uncrystalled-memorisingly.ngrok-free.dev/api/whale-signals?limit=20';
+const url='https://jaelynn-uncrystalled-memorisingly.ngrok-free.dev/api/whale-signals?limit=20';
 try{
-const res=await fetch(api);
+const res=await fetch(url,{
+headers:{'ngrok-skip-browser-warning':'69420','User-Agent':'Chrome'}
+});
 const json=await res.json();
-console.log('Data:',json);
 
 document.getElementById('msg').innerHTML='✅ Connected! '+json.total+' signals';
 document.getElementById('total').innerHTML=json.total;
@@ -51,7 +52,7 @@ rows+='<tr><td>'+s.symbol+'</td><td>$'+s.price.toFixed(2)+'</td><td><b>'+s.actio
 });
 document.getElementById('tb').innerHTML=rows;
 }catch(e){
-document.getElementById('msg').innerHTML='❌ Connection failed: '+e.message;
+document.getElementById('msg').innerHTML='❌ Error: '+e.message;
 console.error(e);
 }}
 
