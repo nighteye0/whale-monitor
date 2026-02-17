@@ -15,8 +15,8 @@ th,td{padding:12px;text-align:left;border-bottom:1px solid #333}
 </head>
 <body>
 <div class="container">
-<h1>🐋 Whale Monitor - Live Signals</h1>
-<div id="msg">Connecting...</div>
+<h1>🐋 Whale Monitor v2</h1>
+<div id="msg">Loading...</div>
 
 <div class="stats">
 <div class="stat"><div>Total</div><div class="num" id="total">0</div></div>
@@ -27,37 +27,45 @@ th,td{padding:12px;text-align:left;border-bottom:1px solid #333}
 
 <table>
 <thead><tr><th>Symbol</th><th>Price</th><th>Action</th><th>Confidence</th><th>Time</th></tr></thead>
-<tbody id="tb"><tr><td colspan="5">Loading...</td></tr></tbody>
+<tbody id="tb"></tbody>
 </table>
 </div>
 
 <script>
-async function load(){
-const url='https://jaelynn-uncrystalled-memorisingly.ngrok-free.dev/api/whale-signals?limit=20';
-try{
-const res=await fetch(url,{
-headers:{'ngrok-skip-browser-warning':'69420','User-Agent':'Chrome'}
-});
-const json=await res.json();
+const API_URL = new URL('https://jaelynn-uncrystalled-memorisingly.ngrok-free.dev/api/whale-signals');
 
-document.getElementById('msg').innerHTML='✅ Connected! '+json.total+' signals';
-document.getElementById('total').innerHTML=json.total;
-document.getElementById('buys').innerHTML=json.signals.filter(s=>s.action==='BUY').length;
-document.getElementById('sells').innerHTML=json.signals.filter(s=>s.action==='SELL').length;
-document.getElementById('holds').innerHTML=json.signals.filter(s=>s.action==='HOLD').length;
+async function fetchData() {
+  try {
+    const response = await fetch(API_URL.toString() + '?limit=20&t=' + Date.now(), {
+      method: 'GET',
+      headers: {
+        'ngrok-skip-browser-warning': '69420'
+      }
+    });
+    
+    if (!response.ok) throw new Error('Response not ok: ' + response.status);
+    
+    const data = await response.json();
+    
+    document.getElementById('msg').innerText = '✅ Connected! ' + data.total + ' signals';
+    document.getElementById('total').innerText = data.total;
+    document.getElementById('buys').innerText = data.signals.filter(s => s.action === 'BUY').length;
+    document.getElementById('sells').innerText = data.signals.filter(s => s.action === 'SELL').length;
+    document.getElementById('holds').innerText = data.signals.filter(s => s.action === 'HOLD').length;
+    
+    let html = '';
+    data.signals.slice().reverse().forEach(s => {
+      html += '<tr><td>' + s.symbol + '</td><td>$' + s.price.toFixed(2) + '</td><td><b>' + s.action + '</b></td><td>' + (s.confidence*100).toFixed(0) + '%</td><td>' + new Date(s.timestamp).toLocaleTimeString() + '</td></tr>';
+    });
+    
+    document.getElementById('tb').innerHTML = html;
+  } catch (error) {
+    document.getElementById('msg').innerText = '❌ Error: ' + error.message;
+  }
+}
 
-let rows='';
-json.signals.slice().reverse().slice(0,20).forEach(s=>{
-rows+='<tr><td>'+s.symbol+'</td><td>$'+s.price.toFixed(2)+'</td><td><b>'+s.action+'</b></td><td>'+(s.confidence*100).toFixed(0)+'%</td><td>'+new Date(s.timestamp).toLocaleTimeString()+'</td></tr>';
-});
-document.getElementById('tb').innerHTML=rows;
-}catch(e){
-document.getElementById('msg').innerHTML='❌ Error: '+e.message;
-console.error(e);
-}}
-
-load();
-setInterval(load, 5000);
+fetchData();
+setInterval(fetchData, 5000);
 </script>
 </body>
 </html>
