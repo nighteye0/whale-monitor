@@ -36,7 +36,7 @@ tr:hover{background:#333}
 </div>
 
 <table>
-<thead><tr><th>Symbol</th><th>Price</th><th>Action</th><th>Conf</th><th>Signal</th><th>Time</th></tr></thead>
+<thead><tr><th>Symbol</th><th>Price</th><th>Action</th><th>Confidence</th><th>Signal</th><th>Time</th></tr></thead>
 <tbody id="tb"><tr><td colspan="6">Loading...</td></tr></tbody>
 </table>
 </div>
@@ -45,7 +45,7 @@ tr:hover{background:#333}
 const API='https://jaelynn-uncrystalled-memorisingly.ngrok-free.dev/api';
 async function load(){
 try{
-const r=await fetch(API+'/whale-signals?limit=20');
+const r=await fetch(API+'/whale-signals?limit=20',{mode:'cors'});
 const d=await r.json();
 const b=d.signals.filter(x=>x.action==='BUY').length;
 const s=d.signals.filter(x=>x.action==='SELL').length;
@@ -63,7 +63,7 @@ html+='<tr><td><b>'+x.symbol+'</b></td><td>$'+x.price.toFixed(2)+'</td><td class
 });
 document.getElementById('tb').innerHTML=html||'<tr><td colspan="6">No signals</td></tr>';
 }catch(e){
-document.getElementById('msg').innerHTML='<div class="msg err">❌ Bot not connected</div>';
+document.getElementById('msg').innerHTML='<div class="msg err">❌ Bot not connected ('+e.message+')</div>';
 }}
 load();
 setInterval(load,5000);
